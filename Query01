@@ -1,0 +1,35 @@
+with MaxPurchasePerProduct as (
+    select
+        YEAR(SOH.OrderDate) as SaleYear,
+        P.ProductID,
+        P.name as ProductName,
+        SOH.CustomerID,
+        COALESCE(PP.FirstName + ' ' + PP.LastName, 'Unknown') as CustomerName,
+        SUM(SOD.LineTotal) as TotalPurchase,
+        ROW_NUMBER() over (PARTITION BY YEAR(SOH.OrderDate), P.ProductID order by SUM(SOD.LineTotal) desc) as PurchaseRank
+    from
+        Sales.SalesOrderDetail as SOD
+    INNER JOIN Sales.SalesOrderHeader AS SOH on SOD.SalesOrderID = SOH.SalesOrderID
+    INNER JOIN Production.Product as P on SOD.ProductID = P.ProductID
+    LEFT JOIN Person.Person as PP on SOH.CustomerID = PP.BusinessEntityID
+    group by
+        YEAR(SOH.OrderDate),
+        P.ProductID,
+        P.name,
+        SOH.CustomerID,
+        PP.FirstName,
+        PP.LastName
+)
+select
+    SaleYear,
+    ProductID,
+    ProductName,
+    CustomerID,
+    CustomerName,
+    TotalPurchase
+from
+    MaxPurchasePerProduct
+where
+    PurchaseRank = 1
+order by
+    SaleYear, ProductName, CustomerName;
