@@ -1,0 +1,29 @@
+with MonthlySales as (
+    select
+        P.ProductID,
+        P.name as ProductName,
+        MONTH(SOH.OrderDate) as SaleMonth,
+        SUM(SOD.LineTotal) as TotalSale
+    from
+        Production.Product as P
+    left join
+        Sales.SalesOrderDetail as SOD on P.ProductID = SOD.ProductID
+    left join
+        Sales.SalesOrderHeader as SOH on SOD.SalesOrderID = SOH.SalesOrderID
+    where
+        YEAR(SOH.OrderDate) = 2014
+    group by
+        P.ProductID, P.name, MONTH(SOH.OrderDate)
+)
+select
+    MS.ProductID,
+    MS.ProductName,
+    case
+        when MS.TotalSale is null then 'No Sale'
+        else DATENAME(MONTH, DATEADD(MONTH, MS.SaleMonth - 1, 0))
+    end as MonthName,
+    MS.TotalSale
+from
+    MonthlySales as MS
+order by
+    MS.ProductID;
