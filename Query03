@@ -1,0 +1,44 @@
+declare @year int;
+declare yearcursor cursor for
+select distinct year(ratechangedate) as payyear
+from adventureworks2019.humanresources.employeepayhistory
+order by payyear;
+open yearcursor;
+fetch next from yearcursor into @year;
+while @@fetch_status = 0
+begin
+    declare @employeename nvarchar(50);
+    declare @businessentityid int;
+    declare @payrate money;
+    declare @rownum int = 1;
+    declare employeecursor cursor for
+    select top 10 
+        concat(pp.firstname, ' ', pp.lastname) as employeename,
+        eph.businessentityid,
+        eph.rate as payrate
+    from person.person pp
+    inner join humanresources.employee e
+        on pp.businessentityid = e.businessentityid
+    inner join adventureworks2019.humanresources.employeepayhistory eph
+        on e.businessentityid = eph.businessentityid
+    where year(eph.ratechangedate) = @year
+    order by eph.rate desc;
+    print 'year: ' + cast(@year as nvarchar(4));
+    print '===============================';
+    print 'row no.    employee name    employee id    pay rate';
+    print '=======    =============    ============    =======';
+    open employeecursor;
+    fetch next from employeecursor into @employeename, @businessentityid, @payrate;
+    while @@fetch_status = 0
+    begin
+        print cast(@rownum as nvarchar(50)) + '.         ' + @employeename + '        ' + cast(@businessentityid as nvarchar(15)) + '        ' + cast(@payrate as nvarchar(10));
+        set @rownum = @rownum + 1;
+        fetch next from employeecursor into @employeename, @businessentityid, @payrate;
+    end
+    print '==========================================================================';
+    close employeecursor;
+    deallocate employeecursor;
+    fetch next from yearcursor into @year;
+end
+close yearcursor;
+deallocate yearcursor;
